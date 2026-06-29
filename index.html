@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OnSpot Travel — Assistant Tickets</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="brand">
+    <span class="brand-mark">OS</span>
+    <div class="brand-text">
+      <h1>Assistant Tickets</h1>
+      <p>OnSpot Travel — analyse rapide des tickets de support</p>
+    </div>
+  </div>
+  <button id="history-toggle" class="btn-ghost" type="button">Historique</button>
+</header>
+
+<main class="layout">
+
+  <!-- Colonne gauche : saisie -->
+  <section class="panel input-panel">
+    <form id="ticket-form">
+
+      <div class="field-row">
+        <div class="field">
+          <label for="ticket-number">Numéro de ticket</label>
+          <input type="text" id="ticket-number" placeholder="ex. OS-48213" required>
+        </div>
+        <div class="field">
+          <label for="client-name">Nom du client</label>
+          <input type="text" id="client-name" placeholder="ex. M. Dupont" required>
+        </div>
+      </div>
+
+      <div class="field-row">
+        <div class="field">
+          <label for="canal">Canal du message client</label>
+          <select id="canal">
+            <option value="email">Email</option>
+            <option value="whatsapp">WhatsApp</option>
+            <option value="crisp">Crisp</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="ton">Ton</label>
+          <select id="ton">
+            <option value="empathique">Empathique</option>
+            <option value="neutre">Neutre</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="segment">Segment client</label>
+          <select id="segment">
+            <option value="standard">Standard</option>
+            <option value="premium">Premium</option>
+            <option value="elite">Elite</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="ticket-content">Contenu du ticket (échanges, notes internes, tout coller ici)</label>
+        <textarea id="ticket-content" rows="16" placeholder="Collez ici l'intégralité du ticket : historique des messages, notes internes, demandes du client..." required></textarea>
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="btn-primary" id="submit-btn">Analyser le ticket</button>
+        <button type="button" class="btn-ghost" id="clear-btn">Effacer</button>
+      </div>
+
+      <p class="error-msg" id="error-msg" hidden></p>
+    </form>
+  </section>
+
+  <!-- Colonne droite : résultats -->
+  <section class="panel results-panel" id="results-panel">
+    <div class="empty-state" id="empty-state">
+      <p>Le résumé, les messages prêts à l'envoi et les instructions par pôle s'afficheront ici une fois le ticket analysé.</p>
+    </div>
+
+    <div class="loading-state" id="loading-state" hidden>
+      <div class="spinner"></div>
+      <p>Analyse du ticket en cours...</p>
+    </div>
+
+    <div class="results-content" id="results-content" hidden>
+
+      <div class="result-block" data-block="resume">
+        <div class="result-block-header">
+          <h2>Résumé interne</h2>
+          <button class="btn-copy" data-copy-target="resume-text">Copier</button>
+        </div>
+        <div class="result-body" id="resume-text"></div>
+      </div>
+
+      <div class="result-block" data-block="par-pole">
+        <div class="result-block-header">
+          <h2>Ce qui a été dit par pôle</h2>
+          <button class="btn-copy" data-copy-target="pole-text">Copier</button>
+        </div>
+        <div class="result-body" id="pole-text"></div>
+      </div>
+
+      <div class="result-block" data-block="message-client">
+        <div class="result-block-header">
+          <h2>Message client</h2>
+          <button class="btn-copy" data-copy-target="client-text">Copier</button>
+        </div>
+        <div class="result-body" id="client-text"></div>
+      </div>
+
+      <div class="result-block" data-block="message-agence" id="agence-block">
+        <div class="result-block-header">
+          <h2>Message à l'agence</h2>
+          <button class="btn-copy" data-copy-target="agence-text">Copier</button>
+        </div>
+        <div class="result-body" id="agence-text"></div>
+      </div>
+
+      <div class="result-block" data-block="instructions">
+        <div class="result-block-header">
+          <h2>Instructions internes</h2>
+          <button class="btn-copy" data-copy-target="instructions-text">Copier</button>
+        </div>
+        <div class="result-body" id="instructions-text"></div>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<!-- Panneau historique -->
+<aside class="history-drawer" id="history-drawer" hidden>
+  <div class="history-header">
+    <h2>Tickets traités</h2>
+    <button class="btn-ghost" id="history-close">Fermer</button>
+  </div>
+  <div class="history-list" id="history-list"></div>
+  <button class="btn-ghost btn-danger" id="history-clear">Vider l'historique</button>
+</aside>
+
+<script src="script.js"></script>
+</body>
+</html>
