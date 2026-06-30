@@ -396,21 +396,6 @@ chatInput.addEventListener('keypress', (e) => {
   }
 });
 
-// ---------- Gestion du Thème (Multi-Palettes) ----------
-const themeSelector = document.getElementById('theme-selector');
-
-// Charger le thème sauvegardé
-const savedTheme = localStorage.getItem('onspot_theme') || 'brand';
-document.body.setAttribute('data-palette', savedTheme);
-themeSelector.value = savedTheme;
-
-// Changer le thème au clic
-themeSelector.addEventListener('change', (e) => {
-  const newTheme = e.target.value;
-  document.body.setAttribute('data-palette', newTheme);
-  localStorage.setItem('onspot_theme', newTheme);
-});
-
 // ---------- Gestion du Thème (Multi-Palettes) & Mode (Clair/Sombre) ----------
 const themeSelector = document.getElementById('theme-selector');
 const modeToggle = document.getElementById('mode-toggle');
@@ -426,8 +411,8 @@ themeSelector.addEventListener('change', (e) => {
   localStorage.setItem('onspot_theme', newTheme);
 });
 
-// 2. NOUVEAU : Gestion Manuelle du Mode Clair / Sombre
-const savedMode = localStorage.getItem('onspot_mode') || 'dark'; // Par défaut en mode sombre si premier lancement
+// 2. Gestion Manuelle du Mode Clair / Sombre
+const savedMode = localStorage.getItem('onspot_mode') || 'dark';
 applyMode(savedMode);
 
 modeToggle.addEventListener('click', () => {
