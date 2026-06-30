@@ -49,7 +49,8 @@ form.addEventListener('submit', async (e) => {
     const data = await res.json();
 
     if (!res.ok || !data.success) {
-      throw new Error(data.error || 'Erreur inconnue lors de l\'analyse.');
+      const detailMsg = data.details ? ` (${typeof data.details === 'string' ? data.details.slice(0, 200) : ''})` : '';
+      throw new Error((data.error || 'Erreur inconnue lors de l\'analyse.') + detailMsg);
     }
 
     renderResults(data.result, payload);
