@@ -1,158 +1,289 @@
-// api/analyze.js
-// Fonction serverless Vercel : reçoit le ticket depuis le frontend,
-// appelle l'API Gemini avec la clé secrète (jamais exposée au navigateur),
-// et renvoie l'analyse structurée.
+// script.js
+const HISTORY_KEY = 'onspot_ticket_history';
+const MAX_HISTORY = 50;
 
-const SYSTEM_PROMPT = `Tu es un assistant IA spécialisé dans l'analyse de tickets pour une conciergerie de voyage (OnSpot Travel).
+const form = document.getElementById('ticket-form');
+const submitBtn = document.getElementById('submit-btn');
+const clearBtn = document.getElementById('clear-btn');
+const errorMsg = document.getElementById('error-msg');
 
-CONTEXTE MÉTIER
-Plateforme de ticketing : OS Connect (ou similaire).
-Statuts possibles : Nouveau, En attente Front Office, En attente Back Office, En attente Voyageur, Fermé.
+const emptyState = document.getElementById('empty-state');
+const loadingState = document.getElementById('loading-state');
+const resultsContent = document.getElementById('results-content');
 
-Trois pôles interviennent sur un ticket :
-- FO (Front Office) : reçoit et gère le contact direct avec le client, échange avec les agences sur la partie VISIBLE du ticket, et transmet des instructions au BO sous forme de NOTES INTERNES.
-- BO (Back Office) : recherche des informations, contacte les prestataires (hôtels, transferts, activités, compagnies), résout les litiges, et redescend les retours au FO. Le BO échange en interne très souvent EN ANGLAIS.
-- AGV / Agence : partenaire ayant vendu le voyage. Se reconnaît généralement par un NOM D'AGENCE explicite dans les échanges, ou par une signature au nom d'un responsable/patron de l'agence. Intervient surtout sur les modifications et remboursements.
+const historyToggle = document.getElementById('history-toggle');
+const historyDrawer = document.getElementById('history-drawer');
+const historyClose = document.getElementById('history-close');
+const historyList = document.getElementById('history-list');
+const historyClearBtn = document.getElementById('history-clear');
 
-INDICES POUR DISTINGUER LES PÔLES DANS LE TEXTE BRUT (le ticket ne précise pas explicitement qui parle) :
-- Si le message est en anglais et a un ton interne/opérationnel (recherche d'info, demande de confirmation à un prestataire) → probablement BO.
-- Si le message s'adresse directement au client, ou échange avec une agence sur la partie visible, ou est une note donnant des instructions → probablement FO.
-- Si le message porte un nom d'agence, ou est signé par un responsable d'agence, ou parle au nom d'un client qu'elle représente → probablement Agence (AGV).
-- Si le doute persiste sur un message, ne force pas une attribution : indique "Non identifié avec certitude" plutôt que de deviner au hasard.
+// ---------- Soumission du formulaire ----------
 
-RÈGLES STRICTES
-- Ne jamais mentionner le nom des prestataires dans les messages destinés au client : utiliser "le prestataire", "l'hôtel", "la compagnie", "le transporteur", etc.
-- Ton professionnel, empathique, ni trop long ni trop sec.
-- Pas d'emoji. Pas de gras, sauf si explicitement demandé.
-- Adapter le ton selon le segment client (Premium / Elite) et selon le destinataire (client / agence / agent interne).
-- Si une information manque (numéro de réservation, date, etc.), le signaler clairement dans la note, ne jamais l'inventer.
-- Anonymiser toute donnée personnelle sensible si elle apparaît de façon incidente et non nécessaire.
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  hideError();
 
-FORMAT DE SORTIE
-Tu dois répondre UNIQUEMENT en JSON valide, sans aucun texte avant ou après, selon ce schéma exact :
+  const payload = {
+    ticketNumber: document.getElementById('ticket-number').value.trim(),
+    clientName: document.getElementById('client-name').value.trim(),
+    ticketContent: document.getElementById('ticket-content').value.trim(),
+    canal: document.getElementById('canal').value,
+    ton: document.getElementById('ton').value,
+    segment: document.getElementById('segment').value,
+  };
 
-{
-  "resume": {
-    "issue": "string, 1 ligne",
-    "pax_request": "string",
-    "contexte_prestataire": "string",
-    "actions_effectuees": "string",
-    "a_faire": "string",
-    "note": "string (signaler ici les infos manquantes)",
-    "statut": "string (un des statuts OS Connect ci-dessus)"
-  },
-  "par_pole": {
-    "fo": "string résumant ce que le FO a dit/fait dans le ticket, ou 'Aucun élément identifié' si rien",
-    "bo": "string résumant ce que le BO a dit/fait dans le ticket, ou 'Aucun élément identifié' si rien",
-    "agence": "string résumant ce que l'agence a dit/fait dans le ticket, ou 'Aucun élément identifié' si rien",
-    "non_identifie": "string, messages dont l'auteur (pôle) n'a pas pu être déterminé avec confiance, ou vide"
-  },
-  "message_client": {
-    "objet": "string, uniquement si canal = email, sinon vide",
-    "corps": "string, le message prêt à envoyer au client, adapté au canal et au ton demandés"
-  },
-  "message_agence": {
-    "objet": "string, uniquement si pertinent, sinon vide",
-    "corps": "string, le message prêt à envoyer à l'agence, ou vide si non pertinent pour ce ticket"
-  },
-  "instructions_internes": {
-    "fo": "string, actions pour le FO, ou vide si rien à faire pour ce pôle",
-    "bo": "string, actions pour le BO, ou vide si rien à faire pour ce pôle",
-    "agv": "string, actions pour l'agence, ou vide si rien à faire pour ce pôle",
-    "priorite": "string : Basse / Normale / Haute / Urgente",
-    "delai": "string, délai souhaité si déductible du contexte, sinon vide"
-  }
-}
-
-Ne renvoie jamais de texte hors de ce JSON. N'utilise jamais de balises markdown (pas de \`\`\`json).`;
-
-export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Méthode non autorisée. Utilisez POST.' });
+  if (!payload.ticketContent) {
+    showError('Le contenu du ticket est vide.');
+    return;
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return res.status(500).json({
-      error: "Clé API Gemini manquante côté serveur. Configurez GEMINI_API_KEY dans les variables d'environnement Vercel."
-    });
-  }
-
-  const {
-    ticketNumber,
-    clientName,
-    ticketContent,
-    canal,      // 'email' | 'whatsapp' | 'crisp'
-    ton,        // 'neutre' | 'empathique'
-    segment     // 'standard' | 'premium' | 'elite'
-  } = req.body || {};
-
-  if (!ticketContent || !ticketContent.trim()) {
-    return res.status(400).json({ error: 'Le contenu du ticket est vide.' });
-  }
-
-  const userPrompt = `
-NUMÉRO DE TICKET : ${ticketNumber || 'non fourni'}
-NOM DU CLIENT : ${clientName || 'non fourni'}
-CANAL SOUHAITÉ POUR LE MESSAGE CLIENT : ${canal || 'email'}
-TON SOUHAITÉ : ${ton || 'empathique'}
-SEGMENT CLIENT : ${segment || 'standard'}
-
-CONTENU BRUT DU TICKET (historique, échanges, notes internes) :
-"""
-${ticketContent}
-"""
-
-Analyse ce ticket et réponds en suivant EXACTEMENT le schéma JSON demandé dans tes instructions.`;
+  setLoading(true);
 
   try {
-    const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
-            { role: 'user', parts: [{ text: userPrompt }] }
-          ],
-          systemInstruction: {
-            parts: [{ text: SYSTEM_PROMPT }]
-          },
-          generationConfig: {
-            temperature: 0.3,
-            responseMimeType: 'application/json'
-          }
-        })
-      }
-    );
+    const res = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
 
-    if (!geminiResponse.ok) {
-      const errText = await geminiResponse.text();
-      console.error('Erreur API Gemini:', errText);
-      return res.status(502).json({ error: "Erreur lors de l'appel à l'API Gemini.", details: errText });
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      const detailMsg = data.details ? ` (${typeof data.details === 'string' ? data.details.slice(0, 200) : ''})` : '';
+      throw new Error((data.error || 'Erreur inconnue lors de l\'analyse.') + detailMsg);
     }
 
-    const data = await geminiResponse.json();
-    const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    renderResults(data.result, payload);
+    saveToHistory(payload, data.result);
 
-    if (!rawText) {
-      return res.status(502).json({ error: "Réponse Gemini vide ou inattendue.", details: data });
-    }
-
-    let parsed;
-    try {
-      const cleaned = rawText.replace(/```json|```/g, '').trim();
-      parsed = JSON.parse(cleaned);
-    } catch (parseErr) {
-      return res.status(502).json({
-        error: "La réponse de l'IA n'a pas pu être interprétée comme JSON.",
-        rawText
-      });
-    }
-
-    return res.status(200).json({ success: true, result: parsed });
   } catch (err) {
-    console.error('Erreur serveur:', err);
-    return res.status(500).json({ error: 'Erreur serveur lors du traitement.', details: err.message });
+    showError(err.message);
+    setLoading(false);
+    showEmpty();
+  }
+});
+
+clearBtn.addEventListener('click', () => {
+  form.reset();
+  hideError();
+  showEmpty();
+});
+
+// ---------- États d'affichage ----------
+
+function setLoading(isLoading) {
+  submitBtn.disabled = isLoading;
+  if (isLoading) {
+    emptyState.hidden = true;
+    resultsContent.hidden = true;
+    loadingState.hidden = false;
+  } else {
+    loadingState.hidden = true;
   }
 }
+
+function showEmpty() {
+  resultsContent.hidden = true;
+  loadingState.hidden = true;
+  emptyState.hidden = false;
+}
+
+function showError(message) {
+  errorMsg.textContent = message;
+  errorMsg.hidden = false;
+}
+
+function hideError() {
+  errorMsg.hidden = true;
+  errorMsg.textContent = '';
+}
+
+// ---------- Affichage des résultats ----------
+
+function renderResults(result, payload) {
+  setLoading(false);
+  emptyState.hidden = true;
+  resultsContent.hidden = false;
+
+  // Résumé interne
+  const r = result.resume || {};
+  document.getElementById('resume-text').innerHTML = `
+    <dl>
+      <dt>Issue</dt><dd>${escapeHtml(r.issue)}</dd>
+      <dt>Pax request</dt><dd>${escapeHtml(r.pax_request)}</dd>
+      <dt>Contexte</dt><dd>${escapeHtml(r.contexte_prestataire)}</dd>
+      <dt>Actions faites</dt><dd>${escapeHtml(r.actions_effectuees)}</dd>
+      <dt>À faire</dt><dd>${escapeHtml(r.a_faire)}</dd>
+      <dt>Note</dt><dd>${escapeHtml(r.note)}</dd>
+      <dt>Statut</dt><dd>${escapeHtml(r.statut)}</dd>
+    </dl>`;
+
+  // Par pôle
+  const p = result.par_pole || {};
+  let poleHtml = '';
+  poleHtml += poleSection('Front Office (FO)', p.fo);
+  poleHtml += poleSection('Back Office (BO)', p.bo);
+  poleHtml += poleSection('Agence', p.agence);
+  if (p.non_identifie && p.non_identifie.trim()) {
+    poleHtml += poleSection('Non identifié', p.non_identifie);
+  }
+  document.getElementById('pole-text').innerHTML = poleHtml;
+
+  // Message client
+  const mc = result.message_client || {};
+  let clientHtml = '';
+  if (mc.objet && mc.objet.trim()) {
+    clientHtml += `<p><strong>Objet :</strong> ${escapeHtml(mc.objet)}</p>`;
+  }
+  clientHtml += `<div>${escapeHtml(mc.corps).replace(/\n/g, '<br>')}</div>`;
+  document.getElementById('client-text').innerHTML = clientHtml;
+
+  // Message agence (masqué si vide)
+  const ma = result.message_agence || {};
+  const agenceBlock = document.getElementById('agence-block');
+  if (ma.corps && ma.corps.trim()) {
+    let agenceHtml = '';
+    if (ma.objet && ma.objet.trim()) {
+      agenceHtml += `<p><strong>Objet :</strong> ${escapeHtml(ma.objet)}</p>`;
+    }
+    agenceHtml += `<div>${escapeHtml(ma.corps).replace(/\n/g, '<br>')}</div>`;
+    document.getElementById('agence-text').innerHTML = agenceHtml;
+    agenceBlock.hidden = false;
+  } else {
+    agenceBlock.hidden = true;
+  }
+
+  // Instructions internes
+  const ins = result.instructions_internes || {};
+  let insHtml = '<dl>';
+  if (ins.fo && ins.fo.trim()) insHtml += `<dt>FO</dt><dd>${escapeHtml(ins.fo)}</dd>`;
+  if (ins.bo && ins.bo.trim()) insHtml += `<dt>BO</dt><dd>${escapeHtml(ins.bo)}</dd>`;
+  if (ins.agv && ins.agv.trim()) insHtml += `<dt>Agence</dt><dd>${escapeHtml(ins.agv)}</dd>`;
+  if (ins.priorite) insHtml += `<dt>Priorité</dt><dd>${escapeHtml(ins.priorite)}</dd>`;
+  if (ins.delai && ins.delai.trim()) insHtml += `<dt>Délai</dt><dd>${escapeHtml(ins.delai)}</dd>`;
+  insHtml += '</dl>';
+  document.getElementById('instructions-text').innerHTML = insHtml;
+
+  // Stocke le texte brut pour la copie
+  resultsContent.dataset.rawResult = JSON.stringify(result);
+}
+
+function poleSection(label, content) {
+  const text = (content && content.trim()) ? content : 'Aucun élément identifié';
+  return `<div class="pole-section">
+    <span class="pole-label">${escapeHtml(label)}</span>
+    <div>${escapeHtml(text).replace(/\n/g, '<br>')}</div>
+  </div>`;
+}
+
+function escapeHtml(str) {
+  if (str === undefined || str === null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+// ---------- Copier dans le presse-papier ----------
+
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.btn-copy');
+  if (!btn) return;
+
+  const targetId = btn.dataset.copyTarget;
+  const el = document.getElementById(targetId);
+  if (!el) return;
+
+  const text = el.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.classList.add('copied');
+    const original = btn.textContent;
+    btn.textContent = 'Copié';
+    setTimeout(() => {
+      btn.classList.remove('copied');
+      btn.textContent = original;
+    }, 1500);
+  });
+});
+
+// ---------- Historique (localStorage) ----------
+
+function saveToHistory(payload, result) {
+  const history = getHistory();
+  history.unshift({
+    ticketNumber: payload.ticketNumber,
+    clientName: payload.clientName,
+    date: new Date().toISOString(),
+    payload,
+    result,
+  });
+  if (history.length > MAX_HISTORY) history.length = MAX_HISTORY;
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  renderHistoryList();
+}
+
+function getHistory() {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function renderHistoryList() {
+  const history = getHistory();
+  if (history.length === 0) {
+    historyList.innerHTML = '<p class="history-empty">Aucun ticket traité pour le moment.</p>';
+    return;
+  }
+
+  historyList.innerHTML = history.map((entry, idx) => {
+    const date = new Date(entry.date);
+    const dateStr = date.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+    return `<div class="history-item" data-idx="${idx}">
+      <div class="h-ticket">${escapeHtml(entry.ticketNumber || 'Sans numéro')} — ${escapeHtml(entry.clientName || 'Client inconnu')}</div>
+      <div class="h-meta">${dateStr}</div>
+    </div>`;
+  }).join('');
+}
+
+historyList.addEventListener('click', (e) => {
+  const item = e.target.closest('.history-item');
+  if (!item) return;
+  const idx = parseInt(item.dataset.idx, 10);
+  const history = getHistory();
+  const entry = history[idx];
+  if (!entry) return;
+
+  document.getElementById('ticket-number').value = entry.payload.ticketNumber || '';
+  document.getElementById('client-name').value = entry.payload.clientName || '';
+  document.getElementById('ticket-content').value = entry.payload.ticketContent || '';
+  document.getElementById('canal').value = entry.payload.canal || 'email';
+  document.getElementById('ton').value = entry.payload.ton || 'empathique';
+  document.getElementById('segment').value = entry.payload.segment || 'standard';
+
+  renderResults(entry.result, entry.payload);
+  closeHistory();
+});
+
+historyClearBtn.addEventListener('click', () => {
+  if (confirm('Vider tout l\'historique des tickets traités ?')) {
+    localStorage.removeItem(HISTORY_KEY);
+    renderHistoryList();
+  }
+});
+
+function openHistory() {
+  renderHistoryList();
+  historyDrawer.hidden = false;
+}
+function closeHistory() {
+  historyDrawer.hidden = true;
+}
+
+historyToggle.addEventListener('click', openHistory);
+historyClose.addEventListener('click', closeHistory);
+
+// Initialisation
+renderHistoryList();
