@@ -310,3 +310,85 @@ historyClose.addEventListener('click', closeHistory);
 
 // Initialisation
 renderHistoryList();
+
+
+// ---------- Logique Q&A (Deep Dive) ----------
+let currentChatHistory = [];
+
+const chatInput = document.getElementById('chat-input');
+const chatSendBtn = document.getElementById('chat-send-btn');
+const chatMessages = document.getElementById('chat-messages');
+
+chatSendBtn.addEventListener('click', async () => {
+  const question = chatInput.value.trim();
+  if (!question) return;
+
+  // 1. Afficher la question de l'utilisateur
+  appendChatMessage('user', question);
+  chatInput.value = '';
+  chatSendBtn.disabled = true;
+
+  // 2. Récupérer le contexte (ticket brut + analyse précédente stockée dans l'interface)
+  const ticketContent = document.getElementById('ticket-content').value.trim();
+  const analysePrecedente = resultsContent.dataset.rawResult || '';
+
+  // 3. Ajouter un loader temporaire
+  const loaderId = 'loader-' + Date.now();
+  chatMessages.insertAdjacentHTML('beforeend', `<div id="${loaderId}" style="color: var(--ink-soft); font-size: 13px; font-style: italic;">L'IA fouille le ticket...</div>`);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ticketContent,
+        analysePrecedente,
+        question,
+        historiqueChat: currentChatHistory
+      }),
+    });
+
+    const data = await res.json();
+    document.getElementById(loaderId).remove(); // on enlève le loader
+
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'Erreur lors de la réponse.');
+    }
+
+    // 4. Afficher la réponse de l'IA et sauvegarder l'historique
+    appendChatMessage('assistant', data.reponse);
+    
+    currentChatHistory.push({ role: 'user', text: question });
+    currentChatHistory.push({ role: 'assistant', text: data.reponse });
+
+  } catch (err) {
+    document.getElementById(loaderId).remove();
+    appendChatMessage('assistant', 'Erreur : ' + err.message);
+  } finally {
+    chatSendBtn.disabled = false;
+  }
+});
+
+function appendChatMessage(role, text) {
+  const isUser = role === 'user';
+  const align = isUser ? 'align-self: flex-end;' : 'align-self: flex-start;';
+  const bg = isUser ? 'background: var(--accent); color: white;' : 'background: var(--accent-soft); color: var(--ink);';
+  
+  const formattedText = escapeHtml(text).replace(/\n/g, '<br>');
+  
+  const msgHtml = `<div style="${align} ${bg} padding: 10px 14px; border-radius: 8px; max-width: 85%; font-size: 13.5px;">
+    ${formattedText}
+  </div>`;
+  
+  chatMessages.insertAdjacentHTML('beforeend', msgHtml);
+  chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll vers le bas
+}
+
+// Optionnel : permettre d'envoyer avec la touche "Entrée"
+chatInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    chatSendBtn.click();
+  }
+});
