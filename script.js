@@ -106,6 +106,9 @@ function renderResults(result, payload) {
   emptyState.hidden = true;
   resultsContent.hidden = false;
 
+  currentChatHistory = [];
+  document.getElementById('chat-messages').innerHTML = '';
+
   // 1. Résumé interne (Adapté au nouveau JSON)
   const r = result.resume || {};
   // 1.5 Problem Solving
