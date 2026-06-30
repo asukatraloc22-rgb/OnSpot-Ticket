@@ -29,6 +29,11 @@ Réponds UNIQUEMENT en JSON valide. Ne génère aucun texte avant ou après.
     "a_faire": "string",
     "infos_manquantes": "string (ou vide)"
   },
+  "problem_solving": {
+    "analyse_blocage": "string (Quel est le véritable point dur du dossier ?)",
+    "options_client": ["string (Option 1 à proposer)", "string (Option 2)"],
+    "verifications_internes": ["string (Action 1 à vérifier dans le GDS/Extranet/Outils internes)", "string (Action 2)"]
+  },
   "messages": {
     "client": "string (Le message prêt à envoyer, ou vide si la consigne demande de ne pas en faire)",
     "agence": "string (Le message prêt à envoyer, ou vide si non pertinent)"
