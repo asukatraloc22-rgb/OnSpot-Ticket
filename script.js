@@ -31,6 +31,7 @@ form.addEventListener('submit', async (e) => {
     ton: document.getElementById('ton').value,
     langue: document.getElementById('langue').value,
     consigneSpecifique: document.getElementById('consigne').value.trim(),
+    memoireIA: document.getElementById('ai-memory').value.trim(), // <- NOUVEAU
   };
 
   if (!payload.ticketContent) {
