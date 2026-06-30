@@ -60,9 +60,10 @@ export default async function handler(req, res) {
     ticketNumber,
     clientName,
     ticketContent,
-    canal,              // 'email' | 'whatsapp' (Crisp retiré)
-    langue,             // ex: 'Français', 'Anglais'
-    consigneSpecifique  // ex: "Fais juste un message pour l'agence concernant le refus de l'hôtel"
+    canal,              
+    langue,             
+    consigneSpecifique,
+    memoireIA           // <- AJOUT ICI
   } = req.body || {};
 
   if (!ticketContent || !ticketContent.trim()) {
@@ -75,6 +76,11 @@ NOM DU CLIENT : ${clientName || 'Non fourni'}
 CANAL SOUHAITÉ : ${canal || 'Non défini'}
 LANGUE DE RÉPONSE EXIGÉE : ${langue || 'Français'}
 CONSIGNE SPÉCIFIQUE DE L'UTILISATEUR : "${consigneSpecifique || 'Analyse complète standard'}"
+
+RÈGLES DE CONCIERGERIE SUR-MESURE (MÉMOIRE IA - À RESPECTER ABSOLUMENT) :
+"""
+${memoireIA || 'Aucune règle spécifique définie.'}
+"""
 
 CONTENU BRUT DU TICKET :
 """
