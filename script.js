@@ -395,3 +395,18 @@ chatInput.addEventListener('keypress', (e) => {
     chatSendBtn.click();
   }
 });
+
+// ---------- Gestion du Thème (Multi-Palettes) ----------
+const themeSelector = document.getElementById('theme-selector');
+
+// Charger le thème sauvegardé
+const savedTheme = localStorage.getItem('onspot_theme') || 'brand';
+document.body.setAttribute('data-palette', savedTheme);
+themeSelector.value = savedTheme;
+
+// Changer le thème au clic
+themeSelector.addEventListener('change', (e) => {
+  const newTheme = e.target.value;
+  document.body.setAttribute('data-palette', newTheme);
+  localStorage.setItem('onspot_theme', newTheme);
+});
