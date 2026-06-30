@@ -36,13 +36,12 @@
         </div>
       </div>
 
-      <div class="field-row">
+ <div class="field-row">
         <div class="field">
-          <label for="canal">Canal du message client</label>
+          <label for="canal">Canal client</label>
           <select id="canal">
             <option value="email">Email</option>
             <option value="whatsapp">WhatsApp</option>
-            <option value="crisp">Crisp</option>
           </select>
         </div>
         <div class="field">
@@ -53,18 +52,19 @@
           </select>
         </div>
         <div class="field">
-          <label for="segment">Segment client</label>
-          <select id="segment">
-            <option value="standard">Standard</option>
-            <option value="premium">Premium</option>
-            <option value="elite">Elite</option>
+          <label for="langue">Langue (Output)</label>
+          <select id="langue">
+            <option value="Français">Français</option>
+            <option value="Anglais">Anglais</option>
+            <option value="Espagnol">Espagnol</option>
+            <option value="Italien">Italien</option>
           </select>
         </div>
       </div>
 
       <div class="field">
-        <label for="ticket-content">Contenu du ticket (échanges, notes internes, tout coller ici)</label>
-        <textarea id="ticket-content" rows="16" placeholder="Collez ici l'intégralité du ticket : historique des messages, notes internes, demandes du client..." required></textarea>
+        <label for="consigne">Consigne spécifique (Optionnel)</label>
+        <input type="text" id="consigne" placeholder="Ex : Ne fais qu'un retour agence sur la loc de voiture, pas de message client.">
       </div>
 
       <div class="actions">
