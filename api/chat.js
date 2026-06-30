@@ -10,7 +10,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Clé API Gemini manquante." });
   }
 
-  const { ticketContent, analysePrecedente, question, historiqueChat } = req.body || {};
+ const { ticketContent, analysePrecedente, question, historiqueChat, memoireIA } = req.body || {};
 
   if (!question) {
     return res.status(400).json({ error: 'La question est vide.' });
@@ -35,6 +35,11 @@ ${ticketContent || 'Non fourni'}
 VOICI TON ANALYSE INITIALE DE CE TICKET :
 """
 ${analysePrecedente || 'Non fournie'}
+"""
+
+RÈGLES DE CONCIERGERIE SUR-MESURE (MÉMOIRE IA - À APPLIQUER À TA RÉPONSE) :
+"""
+${memoireIA || 'Aucune règle spécifique définie.'}
 """
 
 HISTORIQUE DE NOTRE DISCUSSION :
