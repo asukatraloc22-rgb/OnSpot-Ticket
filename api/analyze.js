@@ -17,6 +17,7 @@ RÈGLES D'ANALYSE STRICTES
 5. Zéro Hallucination : Si une info manque (ex: PNR, date), signale-le avec la balise [À VÉRIFIER] ou [INFO MANQUANTE].
 6. Instruction Spécifique : Si l'utilisateur te donne une consigne spécifique, tu DOIS prioriser cette consigne dans la rédaction de tes messages de sortie.
 7. Problem Solving : Agis comme un concierge senior. Identifie les blocages, propose des solutions de contournement réalistes et liste les vérifications techniques que l'agent doit faire de son côté.
+8. Fichiers joints : Si un fichier est fourni (voucher, image), analyse-le pour y extraire des informations clés et croise-les avec le texte du ticket.
 
 FORMAT DE SORTIE (JSON STRICT)
 Réponds UNIQUEMENT en JSON valide. Ne génère aucun texte avant ou après.
@@ -56,6 +57,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Clé API Gemini manquante." });
   }
 
+  // Ajout de fileData et mimeType ici
   const {
     ticketNumber,
     clientName,
@@ -63,7 +65,9 @@ export default async function handler(req, res) {
     canal,              
     langue,             
     consigneSpecifique,
-    memoireIA           // <- AJOUT ICI
+    memoireIA,
+    fileData,
+    mimeType
   } = req.body || {};
 
   if (!ticketContent || !ticketContent.trim()) {
@@ -89,6 +93,17 @@ ${ticketContent}
 
 Analyse ce ticket et réponds EXACTEMENT selon le schéma JSON. Si la 'CONSIGNE SPÉCIFIQUE' demande de ne générer qu'un type de message, laisse les autres champs de messages vides.`;
 
+  // Préparation de la requête avec ou sans fichier
+  const requestParts = [{ text: userPrompt }];
+  if (fileData && mimeType) {
+    requestParts.push({
+      inlineData: {
+        data: fileData,
+        mimeType: mimeType
+      }
+    });
+  }
+
   try {
     const geminiResponse = await fetch(
      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
@@ -96,10 +111,10 @@ Analyse ce ticket et réponds EXACTEMENT selon le schéma JSON. Si la 'CONSIGNE 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+          contents: [{ role: 'user', parts: requestParts }], // <-- On utilise requestParts ici
           systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
           generationConfig: {
-            temperature: 0.2, // Baissé à 0.2 pour plus de factuel et moins de créativité/hallucination
+            temperature: 0.2,
             responseMimeType: 'application/json'
           }
         })
