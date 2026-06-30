@@ -1,4 +1,6 @@
 :root {
+  /* Fix pour que l'attribut hidden fonctionne toujours */
+[hidden] { display: none !important; }
   --ink: #1b2430;
   --ink-soft: #5b6678;
   --paper: #f7f6f3;
