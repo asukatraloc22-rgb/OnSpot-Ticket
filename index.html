@@ -26,6 +26,7 @@
     
     <button id="mode-toggle" class="btn-ghost" type="button">☀️ Mode Clair</button>
     
+    <button id="settings-toggle" class="btn-ghost" type="button">⚙️ Règles IA</button>
     <button id="history-toggle" class="btn-ghost" type="button">Historique</button>
   </div>
 </header>
@@ -171,6 +172,25 @@
   </div>
   <div class="history-list" id="history-list"></div>
   <button class="btn-ghost btn-danger" id="history-clear">Vider l'historique</button>
+</aside>
+
+  <aside class="history-drawer" id="settings-drawer" hidden>
+  <div class="history-header">
+    <h2>Mémoire & Règles IA</h2>
+    <button class="btn-ghost" id="settings-close">Fermer</button>
+  </div>
+  
+  <div style="margin-bottom: 16px; font-size: 13px; color: var(--text-muted);">
+    Définissez ici vos règles sur-mesure. L'IA les lira à chaque analyse.<br>
+    <em>Ex: "Pour WhatsApp, fais des phrases très courtes", "Vouvoie toujours le client", "Format de retour agence : [Action] - [Résultat]".</em>
+  </div>
+
+  <div class="field" style="height: calc(100% - 180px);">
+    <textarea id="ai-memory" style="height: 100%; font-family: var(--font-mono); font-size: 13px;" placeholder="Écrivez vos règles métier et instructions de formatage ici..."></textarea>
+  </div>
+  
+  <button class="btn-primary" id="settings-save" style="width: 100%;">Sauvegarder les règles</button>
+  <p id="settings-msg" style="color: var(--primary); font-size: 13px; margin-top: 10px; text-align: center; font-weight: bold;" hidden>✅ Règles sauvegardées !</p>
 </aside>
 
 <script src="script.js"></script>
