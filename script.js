@@ -434,3 +434,23 @@ function applyMode(mode) {
     localStorage.setItem('onspot_mode', 'dark');
   }
 }
+
+// ---------- Gestion de la Mémoire IA (Paramètres) ----------
+const settingsToggle = document.getElementById('settings-toggle');
+const settingsDrawer = document.getElementById('settings-drawer');
+const settingsClose = document.getElementById('settings-close');
+const aiMemoryInput = document.getElementById('ai-memory');
+const settingsSaveBtn = document.getElementById('settings-save');
+const settingsMsg = document.getElementById('settings-msg');
+
+// Charger la mémoire au démarrage
+aiMemoryInput.value = localStorage.getItem('onspot_ai_memory') || '';
+
+settingsToggle.addEventListener('click', () => settingsDrawer.hidden = false);
+settingsClose.addEventListener('click', () => settingsDrawer.hidden = true);
+
+settingsSaveBtn.addEventListener('click', () => {
+  localStorage.setItem('onspot_ai_memory', aiMemoryInput.value);
+  settingsMsg.hidden = false;
+  setTimeout(() => settingsMsg.hidden = true, 2000);
+});
