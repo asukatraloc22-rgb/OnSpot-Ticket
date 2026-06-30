@@ -10,10 +10,12 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Clé API Gemini manquante." });
   }
 
- const { ticketContent, analysePrecedente, question, historiqueChat, memoireIA } = req.body || {};
+  // Ajout de fileData et mimeType ici
+  const { ticketContent, analysePrecedente, question, historiqueChat, memoireIA, fileData, mimeType } = req.body || {};
 
-  if (!question) {
-    return res.status(400).json({ error: 'La question est vide.' });
+  // La question n'est plus strictement obligatoire s'il y a un fichier envoyé
+  if (!question && !fileData) {
+    return res.status(400).json({ error: 'Veuillez poser une question ou envoyer un fichier.' });
   }
 
   // On reconstruit l'historique de la conversation pour Gemini
@@ -24,6 +26,7 @@ export default async function handler(req, res) {
 
   const systemPrompt = `Tu es l'assistant de conciergerie OnSpot Travel. Ton rôle est de répondre aux questions de l'agent concernant un ticket spécifique.
 Tu dois être précis, fouiller dans le ticket brut si nécessaire, et proposer des solutions concrètes. 
+Si on te fournit un fichier, analyse-le méticuleusement pour répondre à la demande.
 Réponds de manière naturelle, en texte libre (pas de JSON). Utilise des listes à puces si tu énumères des éléments.`;
 
   const userPrompt = `
@@ -47,8 +50,19 @@ HISTORIQUE DE NOTRE DISCUSSION :
 ${formatHistory}
 """
 
-MA NOUVELLE QUESTION : ${question}
+MA NOUVELLE QUESTION : ${question || 'Analyse le fichier joint en fonction du contexte de ce ticket.'}
 `;
+
+  // Préparation de la requête avec ou sans fichier
+  const requestParts = [{ text: userPrompt }];
+  if (fileData && mimeType) {
+    requestParts.push({
+      inlineData: {
+        data: fileData,
+        mimeType: mimeType
+      }
+    });
+  }
 
   try {
     const geminiResponse = await fetch(
@@ -57,7 +71,7 @@ MA NOUVELLE QUESTION : ${question}
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+          contents: [{ role: 'user', parts: requestParts }], // <-- On utilise requestParts ici
           systemInstruction: { parts: [{ text: systemPrompt }] },
           generationConfig: { temperature: 0.3 }
         })
