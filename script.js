@@ -29,7 +29,8 @@ form.addEventListener('submit', async (e) => {
     ticketContent: document.getElementById('ticket-content').value.trim(),
     canal: document.getElementById('canal').value,
     ton: document.getElementById('ton').value,
-    segment: document.getElementById('segment').value,
+    langue: document.getElementById('langue').value,
+    consigneSpecifique: document.getElementById('consigne').value.trim(),
   };
 
   if (!payload.ticketContent) {
@@ -105,62 +106,61 @@ function renderResults(result, payload) {
   emptyState.hidden = true;
   resultsContent.hidden = false;
 
-  // Résumé interne
+  // 1. Résumé interne (Adapté au nouveau JSON)
   const r = result.resume || {};
+  
+  // Formatage de la chronologie (liste à puces)
+  let chronologieHtml = '';
+  if (Array.isArray(r.details_chronologiques)) {
+    chronologieHtml = `<ul style="margin: 0; padding-left: 16px;">${r.details_chronologiques.map(d => `<li>${escapeHtml(d)}</li>`).join('')}</ul>`;
+  } else {
+    chronologieHtml = escapeHtml(r.details_chronologiques);
+  }
+
+  // Formatage visuel des incohérences (en rouge si détectées)
+  const incoherenceStyle = (r.incoherences_detectees && r.incoherences_detectees.length > 40) ? 'color: var(--warn); font-weight: bold;' : '';
+
   document.getElementById('resume-text').innerHTML = `
     <dl>
-      <dt>Issue</dt><dd>${escapeHtml(r.issue)}</dd>
-      <dt>Pax request</dt><dd>${escapeHtml(r.pax_request)}</dd>
-      <dt>Contexte</dt><dd>${escapeHtml(r.contexte_prestataire)}</dd>
+      <dt>Issue principale</dt><dd><strong>${escapeHtml(r.issue_principale)}</strong></dd>
+      <dt>Chronologie</dt><dd>${chronologieHtml}</dd>
       <dt>Actions faites</dt><dd>${escapeHtml(r.actions_effectuees)}</dd>
       <dt>À faire</dt><dd>${escapeHtml(r.a_faire)}</dd>
-      <dt>Note</dt><dd>${escapeHtml(r.note)}</dd>
-      <dt>Statut</dt><dd>${escapeHtml(r.statut)}</dd>
+      <dt style="${incoherenceStyle}">Incohérences</dt><dd style="${incoherenceStyle}">${escapeHtml(r.incoherences_detectees)}</dd>
+      <dt>Infos manquantes</dt><dd>${escapeHtml(r.infos_manquantes)}</dd>
     </dl>`;
 
-  // Par pôle
-  const p = result.par_pole || {};
-  let poleHtml = '';
-  poleHtml += poleSection('Front Office (FO)', p.fo);
-  poleHtml += poleSection('Back Office (BO)', p.bo);
-  poleHtml += poleSection('Agence', p.agence);
-  if (p.non_identifie && p.non_identifie.trim()) {
-    poleHtml += poleSection('Non identifié', p.non_identifie);
-  }
-  document.getElementById('pole-text').innerHTML = poleHtml;
+  // 2. Ce qui a été dit par pôle (Optionnel - à voir si tu veux le garder, sinon on peut le masquer)
+  // Note: Ton backend API modifié ne renvoie plus 'par_pole', on peut donc masquer ce bloc si tu n'en as plus besoin.
+  const poleBlock = document.querySelector('[data-block="par-pole"]');
+  if(poleBlock) poleBlock.hidden = true;
 
-  // Message client
-  const mc = result.message_client || {};
-  let clientHtml = '';
-  if (mc.objet && mc.objet.trim()) {
-    clientHtml += `<p><strong>Objet :</strong> ${escapeHtml(mc.objet)}</p>`;
+  // 3. Message client (Masqué si vide grâce à la consigne spécifique)
+  const mc = result.messages?.client || '';
+  const clientBlock = document.querySelector('[data-block="message-client"]');
+  if (mc.trim()) {
+    document.getElementById('client-text').innerHTML = `<div>${escapeHtml(mc).replace(/\n/g, '<br>')}</div>`;
+    clientBlock.hidden = false;
+  } else {
+    clientBlock.hidden = true;
   }
-  clientHtml += `<div>${escapeHtml(mc.corps).replace(/\n/g, '<br>')}</div>`;
-  document.getElementById('client-text').innerHTML = clientHtml;
 
-  // Message agence (masqué si vide)
-  const ma = result.message_agence || {};
+  // 4. Message agence (Masqué si vide)
+  const ma = result.messages?.agence || '';
   const agenceBlock = document.getElementById('agence-block');
-  if (ma.corps && ma.corps.trim()) {
-    let agenceHtml = '';
-    if (ma.objet && ma.objet.trim()) {
-      agenceHtml += `<p><strong>Objet :</strong> ${escapeHtml(ma.objet)}</p>`;
-    }
-    agenceHtml += `<div>${escapeHtml(ma.corps).replace(/\n/g, '<br>')}</div>`;
-    document.getElementById('agence-text').innerHTML = agenceHtml;
+  if (ma.trim()) {
+    document.getElementById('agence-text').innerHTML = `<div>${escapeHtml(ma).replace(/\n/g, '<br>')}</div>`;
     agenceBlock.hidden = false;
   } else {
     agenceBlock.hidden = true;
   }
 
-  // Instructions internes
+  // 5. Instructions internes
   const ins = result.instructions_internes || {};
   let insHtml = '<dl>';
   if (ins.fo && ins.fo.trim()) insHtml += `<dt>FO</dt><dd>${escapeHtml(ins.fo)}</dd>`;
   if (ins.bo && ins.bo.trim()) insHtml += `<dt>BO</dt><dd>${escapeHtml(ins.bo)}</dd>`;
-  if (ins.agv && ins.agv.trim()) insHtml += `<dt>Agence</dt><dd>${escapeHtml(ins.agv)}</dd>`;
-  if (ins.priorite) insHtml += `<dt>Priorité</dt><dd>${escapeHtml(ins.priorite)}</dd>`;
-  if (ins.delai && ins.delai.trim()) insHtml += `<dt>Délai</dt><dd>${escapeHtml(ins.delai)}</dd>`;
+  if (ins.priorite) insHtml += `<dt>Priorité</dt><dd><strong>${escapeHtml(ins.priorite)}</strong></dd>`;
   insHtml += '</dl>';
   document.getElementById('instructions-text').innerHTML = insHtml;
 
