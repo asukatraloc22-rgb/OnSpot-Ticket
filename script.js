@@ -410,3 +410,42 @@ themeSelector.addEventListener('change', (e) => {
   document.body.setAttribute('data-palette', newTheme);
   localStorage.setItem('onspot_theme', newTheme);
 });
+
+// ---------- Gestion du Thème (Multi-Palettes) & Mode (Clair/Sombre) ----------
+const themeSelector = document.getElementById('theme-selector');
+const modeToggle = document.getElementById('mode-toggle');
+
+// 1. Charger la palette sauvegardée
+const savedTheme = localStorage.getItem('onspot_theme') || 'brand';
+document.body.setAttribute('data-palette', savedTheme);
+themeSelector.value = savedTheme;
+
+themeSelector.addEventListener('change', (e) => {
+  const newTheme = e.target.value;
+  document.body.setAttribute('data-palette', newTheme);
+  localStorage.setItem('onspot_theme', newTheme);
+});
+
+// 2. NOUVEAU : Gestion Manuelle du Mode Clair / Sombre
+const savedMode = localStorage.getItem('onspot_mode') || 'dark'; // Par défaut en mode sombre si premier lancement
+applyMode(savedMode);
+
+modeToggle.addEventListener('click', () => {
+  const currentMode = document.body.classList.contains('light-mode') ? 'light' : 'dark';
+  const newMode = currentMode === 'light' ? 'dark' : 'light';
+  applyMode(newMode);
+});
+
+function applyMode(mode) {
+  if (mode === 'light') {
+    document.body.classList.remove('dark-mode');
+    document.body.classList.add('light-mode');
+    modeToggle.textContent = '🌙 Mode Sombre';
+    localStorage.setItem('onspot_mode', 'light');
+  } else {
+    document.body.classList.remove('light-mode');
+    document.body.classList.add('dark-mode');
+    modeToggle.textContent = '☀️ Mode Clair';
+    localStorage.setItem('onspot_mode', 'dark');
+  }
+}
