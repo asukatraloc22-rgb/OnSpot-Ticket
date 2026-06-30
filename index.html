@@ -92,7 +92,7 @@
       <p>Analyse du ticket en cours...</p>
     </div>
 
-    <div class="results-content" id="results-content" hidden>
+   <div class="results-content" id="results-content" hidden>
 
       <div class="result-block" data-block="resume">
         <div class="result-block-header">
@@ -108,14 +108,6 @@
           <button class="btn-copy" data-copy-target="problem-solving-text">Copier</button>
         </div>
         <div class="result-body" id="problem-solving-text"></div>
-      </div>
-
-      <div class="result-block" data-block="par-pole">
-        <div class="result-block-header">
-          <h2>Ce qui a été dit par pôle</h2>
-          <button class="btn-copy" data-copy-target="pole-text">Copier</button>
-        </div>
-        <div class="result-body" id="pole-text"></div>
       </div>
 
       <div class="result-block" data-block="message-client">
@@ -142,7 +134,20 @@
         <div class="result-body" id="instructions-text"></div>
       </div>
 
-    </div>
+      <div class="result-block chat-block" id="chat-section" style="margin-top: 30px; border-top: 2px dashed var(--line); padding-top: 20px;">
+        <div class="result-block-header">
+          <h2>Poser une question sur ce ticket (Deep Dive)</h2>
+        </div>
+        
+        <div id="chat-messages" style="max-height: 300px; overflow-y: auto; margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px;">
+          </div>
+
+        <div style="display: flex; gap: 10px;">
+          <input type="text" id="chat-input" placeholder="Demande une précision, demande de fouiller une info..." style="flex: 1;">
+          <button type="button" id="chat-send-btn" class="btn-primary">Envoyer</button>
+        </div>
+      </div>
+      </div> 
   </section>
 
 </main>
