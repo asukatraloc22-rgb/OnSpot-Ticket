@@ -108,7 +108,29 @@ function renderResults(result, payload) {
 
   // 1. Résumé interne (Adapté au nouveau JSON)
   const r = result.resume || {};
-  
+  // 1.5 Problem Solving
+  const ps = result.problem_solving;
+  const psBlock = document.querySelector('[data-block="problem-solving"]');
+  if (ps) {
+    let optionsHtml = Array.isArray(ps.options_client) && ps.options_client.length > 0 
+      ? `<ul style="margin: 0; padding-left: 16px;">${ps.options_client.map(o => `<li>${escapeHtml(o)}</li>`).join('')}</ul>` 
+      : 'Aucune option spécifique identifiée.';
+      
+    let verifsHtml = Array.isArray(ps.verifications_internes) && ps.verifications_internes.length > 0
+      ? `<ul style="margin: 0; padding-left: 16px;">${ps.verifications_internes.map(v => `<li>${escapeHtml(v)}</li>`).join('')}</ul>`
+      : 'Aucune vérification interne spécifique requise.';
+
+    document.getElementById('problem-solving-text').innerHTML = `
+      <dl>
+        <dt>Analyse du blocage</dt><dd>${escapeHtml(ps.analyse_blocage || 'Non défini')}</dd>
+        <dt>Options à proposer au client</dt><dd>${optionsHtml}</dd>
+        <dt>Vérifications internes à faire</dt><dd>${verifsHtml}</dd>
+      </dl>
+    `;
+    psBlock.hidden = false;
+  } else {
+    if(psBlock) psBlock.hidden = true;
+  }
   // Formatage de la chronologie (liste à puces)
   let chronologieHtml = '';
   if (Array.isArray(r.details_chronologiques)) {
