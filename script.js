@@ -349,7 +349,8 @@ chatSendBtn.addEventListener('click', async () => {
         ticketContent,
         analysePrecedente,
         question,
-        historiqueChat: currentChatHistory
+        historiqueChat: currentChatHistory,
+        memoireIA: document.getElementById('ai-memory').value.trim() // <- On rajoute simplement cette ligne ici !
       }),
     });
 
