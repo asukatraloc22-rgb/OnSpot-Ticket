@@ -17,11 +17,38 @@ const historyClose = document.getElementById('history-close');
 const historyList = document.getElementById('history-list');
 const historyClearBtn = document.getElementById('history-clear');
 
+// Fonction utilitaire pour convertir un fichier en Base64
+const fileToBase64 = (file) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.readAsDataURL(file);
+  reader.onload = () => {
+    // Extrait uniquement la partie base64 pure (sans le préfixe data:mime/type;base64,)
+    const base64Data = reader.result.split(',')[1];
+    resolve({ data: base64Data, mimeType: file.type });
+  };
+  reader.onerror = error => reject(error);
+});
+
 // ---------- Soumission du formulaire ----------
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   hideError();
+
+  const fileInput = document.getElementById('main-file');
+  let fileData = null;
+  let mimeType = null;
+
+  if (fileInput.files.length > 0) {
+    const file = fileInput.files[0];
+    if (file.size > 4 * 1024 * 1024) { // Limite de 4 Mo pour Vercel
+      showError("Le fichier est trop volumineux (Max 4 Mo).");
+      return;
+    }
+    const base64Obj = await fileToBase64(file);
+    fileData = base64Obj.data;
+    mimeType = base64Obj.mimeType;
+  }
 
   const payload = {
     ticketNumber: document.getElementById('ticket-number').value.trim(),
@@ -31,7 +58,9 @@ form.addEventListener('submit', async (e) => {
     ton: document.getElementById('ton').value,
     langue: document.getElementById('langue').value,
     consigneSpecifique: document.getElementById('consigne').value.trim(),
-    memoireIA: document.getElementById('ai-memory').value.trim(), // <- NOUVEAU
+    memoireIA: document.getElementById('ai-memory') ? document.getElementById('ai-memory').value.trim() : '',
+    fileData: fileData,
+    mimeType: mimeType
   };
 
   if (!payload.ticketContent) {
@@ -323,25 +352,57 @@ const chatInput = document.getElementById('chat-input');
 const chatSendBtn = document.getElementById('chat-send-btn');
 const chatMessages = document.getElementById('chat-messages');
 
+// NOUVEAU : Variables pour le fichier du chat
+const chatFileBtn = document.getElementById('chat-file-btn');
+const chatFileInput = document.getElementById('chat-file');
+const chatFileName = document.getElementById('chat-file-name');
+
+// Gestion visuelle du bouton 📎
+if (chatFileBtn) {
+  chatFileBtn.addEventListener('click', () => chatFileInput.click());
+  chatFileInput.addEventListener('change', () => {
+    if (chatFileInput.files.length > 0) {
+      chatFileName.textContent = `📎 Fichier prêt : ${chatFileInput.files[0].name}`;
+    } else {
+      chatFileName.textContent = '';
+    }
+  });
+}
+
 chatSendBtn.addEventListener('click', async () => {
   const question = chatInput.value.trim();
-  if (!question) return;
+  if (!question && (!chatFileInput || chatFileInput.files.length === 0)) return; // On permet l'envoi s'il y a juste un fichier
 
   // 1. Afficher la question de l'utilisateur
-  appendChatMessage('user', question);
+  if (question) appendChatMessage('user', question);
+  if (chatFileInput && chatFileInput.files.length > 0) appendChatMessage('user', `📎 [Document joint : ${chatFileInput.files[0].name}]`);
+  
   chatInput.value = '';
   chatSendBtn.disabled = true;
 
-  // 2. Récupérer le contexte (ticket brut + analyse précédente stockée dans l'interface)
+  // 2. Récupérer le contexte
   const ticketContent = document.getElementById('ticket-content').value.trim();
   const analysePrecedente = resultsContent.dataset.rawResult || '';
 
-  // 3. Ajouter un loader temporaire
+  // 3. Ajouter un loader
   const loaderId = 'loader-' + Date.now();
-  chatMessages.insertAdjacentHTML('beforeend', `<div id="${loaderId}" style="color: var(--ink-soft); font-size: 13px; font-style: italic;">L'IA fouille le ticket...</div>`);
+  chatMessages.insertAdjacentHTML('beforeend', `<div id="${loaderId}" style="color: var(--text-muted); font-size: 13px; font-style: italic;">L'IA analyse votre demande...</div>`);
   chatMessages.scrollTop = chatMessages.scrollHeight;
 
   try {
+    // NOUVEAU : Traitement du fichier avant l'envoi
+    let chatFileData = null;
+    let chatMimeType = null;
+
+    if (chatFileInput && chatFileInput.files.length > 0) {
+      const file = chatFileInput.files[0];
+      if (file.size > 4 * 1024 * 1024) throw new Error("Le fichier est trop lourd (Max 4 Mo pour Vercel).");
+      
+      const base64Obj = await fileToBase64(file);
+      chatFileData = base64Obj.data;
+      chatMimeType = base64Obj.mimeType;
+    }
+
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -350,22 +411,31 @@ chatSendBtn.addEventListener('click', async () => {
         analysePrecedente,
         question,
         historiqueChat: currentChatHistory,
-        memoireIA: document.getElementById('ai-memory').value.trim() // <- On rajoute simplement cette ligne ici !
+        memoireIA: document.getElementById('ai-memory') ? document.getElementById('ai-memory').value.trim() : '',
+        // Ajout du fichier dans la requête API
+        fileData: chatFileData,
+        mimeType: chatMimeType
       }),
     });
 
     const data = await res.json();
-    document.getElementById(loaderId).remove(); // on enlève le loader
+    document.getElementById(loaderId).remove();
 
     if (!res.ok || !data.success) {
       throw new Error(data.error || 'Erreur lors de la réponse.');
     }
 
-    // 4. Afficher la réponse de l'IA et sauvegarder l'historique
+    // 4. Afficher la réponse
     appendChatMessage('assistant', data.reponse);
     
-    currentChatHistory.push({ role: 'user', text: question });
+    if (question) currentChatHistory.push({ role: 'user', text: question });
     currentChatHistory.push({ role: 'assistant', text: data.reponse });
+
+    // Nettoyer l'input de fichier après succès
+    if (chatFileInput) {
+      chatFileInput.value = '';
+      chatFileName.textContent = '';
+    }
 
   } catch (err) {
     document.getElementById(loaderId).remove();
@@ -378,16 +448,16 @@ chatSendBtn.addEventListener('click', async () => {
 function appendChatMessage(role, text) {
   const isUser = role === 'user';
   const align = isUser ? 'align-self: flex-end;' : 'align-self: flex-start;';
-  const bg = isUser ? 'background: var(--accent); color: white;' : 'background: var(--accent-soft); color: var(--ink);';
+  const bg = isUser ? 'background: var(--primary); color: white;' : 'background: var(--bg-panel); color: var(--text-main); border: 1px solid var(--border);';
   
   const formattedText = escapeHtml(text).replace(/\n/g, '<br>');
   
-  const msgHtml = `<div style="${align} ${bg} padding: 10px 14px; border-radius: 8px; max-width: 85%; font-size: 13.5px;">
+  const msgHtml = `<div style="${align} ${bg} padding: 10px 14px; border-radius: 12px; max-width: 85%; font-size: 13.5px; box-shadow: var(--shadow);">
     ${formattedText}
   </div>`;
   
   chatMessages.insertAdjacentHTML('beforeend', msgHtml);
-  chatMessages.scrollTop = chatMessages.scrollHeight; // Auto-scroll vers le bas
+  chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
 // Optionnel : permettre d'envoyer avec la touche "Entrée"
