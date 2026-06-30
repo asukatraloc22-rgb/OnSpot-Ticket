@@ -261,7 +261,8 @@ historyList.addEventListener('click', (e) => {
   document.getElementById('ticket-content').value = entry.payload.ticketContent || '';
   document.getElementById('canal').value = entry.payload.canal || 'email';
   document.getElementById('ton').value = entry.payload.ton || 'empathique';
-  document.getElementById('segment').value = entry.payload.segment || 'standard';
+  document.getElementById('langue').value = entry.payload.langue || 'Français';
+  document.getElementById('consigne').value = entry.payload.consigneSpecifique || '';
 
   renderResults(entry.result, entry.payload);
   closeHistory();
