@@ -2,6 +2,7 @@
   "name": "onspot-ticket-app",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "Assistant IA pour l'analyse de tickets de support OnSpot Travel",
   "scripts": {
     "dev": "vercel dev"
