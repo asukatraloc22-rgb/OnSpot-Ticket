@@ -1,4 +1,4 @@
-css_content = """/* OnSpot Travel - Assistant Tickets V2 */
+/* OnSpot Travel - Assistant Tickets V2 */
 /* Thème : Luxe Tropical & Haute Conciergerie */
 
 @import url('https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,300;0,400;0,700;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap');
@@ -17,7 +17,6 @@ css_content = """/* OnSpot Travel - Assistant Tickets V2 */
   --warn-soft: #F8E9E4;        /* Alerte douce */
   --radius: 16px;              /* Arrondis généreux pour un aspect organique et humain */
   --radius-sm: 8px;
-  --radius-lg: 24px;
   --font-display: 'Merriweather', Georgia, serif;
   --font-body: 'Lato', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: "SF Mono", "Consolas", monospace;
@@ -62,7 +61,7 @@ body {
 .brand-mark {
   width: 44px;
   height: 44px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   background: var(--accent);
   color: var(--paper);
   display: flex;
@@ -131,7 +130,7 @@ body {
 /* Formulaires élégants */
 .field-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 16px;
 }
 
@@ -325,7 +324,7 @@ textarea {
 .result-body dl {
   margin: 0;
   display: grid;
-  grid-template-columns: 160px 1fr;
+  grid-template-columns: 180px 1fr;
   gap: 12px 20px;
 }
 
@@ -345,6 +344,13 @@ textarea {
   margin: 0; 
   color: var(--ink);
 }
+.result-body dd ul {
+  margin: 0;
+  padding-left: 20px;
+}
+.result-body dd li {
+  margin-bottom: 4px;
+}
 
 /* Zone de Chat Épurée & Organique */
 #chat-messages {
@@ -355,7 +361,7 @@ textarea {
   margin-bottom: 12px;
   line-height: 1.5;
   box-shadow: var(--shadow-sm);
-  border-radius: var(--radius) !important; /* Force l'arrondi premium */
+  border-radius: var(--radius-sm) !important;
   animation: fadeInUp 0.3s ease forwards;
 }
 
@@ -413,9 +419,3 @@ textarea {
 .history-item .h-meta { font-size: 12px; color: var(--ink-soft); margin-top: 4px; }
 
 .history-empty { color: var(--ink-soft); font-size: 14px; text-align: center; padding: 40px 0; font-style: italic; }
-"""
-
-with open("style_v2.css", "w", encoding="utf-8") as f:
-    f.write(css_content)
-
-print("style_v2.css generated successfully")
