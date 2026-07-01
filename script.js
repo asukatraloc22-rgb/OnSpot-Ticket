@@ -556,3 +556,39 @@ settingsSaveBtn.addEventListener('click', () => {
   settingsMsg.hidden = false;
   setTimeout(() => settingsMsg.hidden = true, 2000);
 });
+
+// ---------- Gestion du code PIN (Verrouillage de l'App) ----------
+// Modifie le texte entre guillemets pour changer ton mot de passe
+const CORRECT_PIN = "ONSPOT2026"; 
+
+const loginScreen = document.getElementById('login-screen');
+const appContent = document.getElementById('app-content');
+const pinInput = document.getElementById('pin-input');
+const pinSubmit = document.getElementById('pin-submit');
+const loginError = document.getElementById('login-error');
+
+// 1. Vérifier si l'utilisateur s'est déjà connecté récemment sur ce PC
+if (localStorage.getItem('onspot_auth') === 'true') {
+  loginScreen.hidden = true;
+  appContent.hidden = false;
+}
+
+// 2. Vérification lors du clic sur "Déverrouiller"
+pinSubmit.addEventListener('click', () => {
+  if (pinInput.value === CORRECT_PIN) {
+    // Si correct : on sauvegarde l'accès et on affiche l'appli
+    localStorage.setItem('onspot_auth', 'true');
+    loginScreen.hidden = true;
+    appContent.hidden = false;
+  } else {
+    // Si incorrect : on affiche l'erreur et on vide le champ
+    loginError.hidden = false;
+    pinInput.value = '';
+    setTimeout(() => loginError.hidden = true, 2000);
+  }
+});
+
+// Permettre de valider avec la touche "Entrée"
+pinInput.addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') pinSubmit.click();
+});
