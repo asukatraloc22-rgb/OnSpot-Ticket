@@ -512,17 +512,47 @@ const settingsToggle = document.getElementById('settings-toggle');
 const settingsDrawer = document.getElementById('settings-drawer');
 const settingsClose = document.getElementById('settings-close');
 const aiMemoryInput = document.getElementById('ai-memory');
+const aiMemoryDisplay = document.getElementById('ai-memory-display');
 const settingsSaveBtn = document.getElementById('settings-save');
+const settingsEditBtn = document.getElementById('settings-edit');
 const settingsMsg = document.getElementById('settings-msg');
 
-// Charger la mémoire au démarrage
-aiMemoryInput.value = localStorage.getItem('onspot_ai_memory') || '';
+// Charger la mémoire
+const savedMemory = localStorage.getItem('onspot_ai_memory') || '';
+aiMemoryInput.value = savedMemory;
+aiMemoryDisplay.textContent = savedMemory || "Aucune règle définie. Cliquez sur Modifier.";
 
-settingsToggle.addEventListener('click', () => settingsDrawer.hidden = false);
+// Ouvrir / Fermer
+settingsToggle.addEventListener('click', () => {
+  settingsDrawer.hidden = false;
+  // On s'assure d'ouvrir en mode lecture
+  aiMemoryDisplay.hidden = false;
+  aiMemoryInput.hidden = true;
+  settingsEditBtn.hidden = false;
+  settingsSaveBtn.hidden = true;
+});
 settingsClose.addEventListener('click', () => settingsDrawer.hidden = true);
 
+// Passer en mode Édition
+settingsEditBtn.addEventListener('click', () => {
+  aiMemoryDisplay.hidden = true;
+  aiMemoryInput.hidden = false;
+  settingsEditBtn.hidden = true;
+  settingsSaveBtn.hidden = false;
+});
+
+// Sauvegarder
 settingsSaveBtn.addEventListener('click', () => {
-  localStorage.setItem('onspot_ai_memory', aiMemoryInput.value);
+  const newMemory = aiMemoryInput.value;
+  localStorage.setItem('onspot_ai_memory', newMemory);
+  aiMemoryDisplay.textContent = newMemory || "Aucune règle définie. Cliquez sur Modifier.";
+  
+  // Repasser en mode lecture
+  aiMemoryInput.hidden = true;
+  aiMemoryDisplay.hidden = false;
+  settingsSaveBtn.hidden = true;
+  settingsEditBtn.hidden = false;
+  
   settingsMsg.hidden = false;
   setTimeout(() => settingsMsg.hidden = true, 2000);
 });
