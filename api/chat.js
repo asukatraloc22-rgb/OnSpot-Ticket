@@ -1,4 +1,5 @@
 // api/chat.js
+export const maxDuration = 60; // Autorise le serveur à réfléchir pendant 60 secondes
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
