@@ -192,15 +192,19 @@
   </div>
   
   <div style="margin-bottom: 16px; font-size: 13px; color: var(--text-muted);">
-    Définissez ici vos règles sur-mesure. L'IA les lira à chaque analyse.<br>
-    <em>Ex: "Pour WhatsApp, fais des phrases très courtes", "Vouvoie toujours le client", "Format de retour agence : [Action] - [Résultat]".</em>
+    Définissez ici vos règles sur-mesure. L'IA les lira à chaque analyse.
   </div>
 
-  <div class="field" style="height: calc(100% - 180px);">
-    <textarea id="ai-memory" style="height: 100%; font-family: var(--font-mono); font-size: 13px;" placeholder="Écrivez vos règles métier et instructions de formatage ici..."></textarea>
+  <div class="field" style="height: calc(100% - 180px); display: flex; flex-direction: column; gap: 10px;">
+    <div id="ai-memory-display" style="flex: 1; overflow-y: auto; font-family: var(--font-main); font-size: 13.5px; padding: 16px; background: var(--bg-page); border: 1px solid var(--border); border-radius: var(--radius-sm); white-space: pre-wrap;"></div>
+    
+    <textarea id="ai-memory" style="flex: 1; font-family: var(--font-main); font-size: 13.5px;" placeholder="Écrivez vos règles métier ici..." hidden></textarea>
   </div>
   
-  <button class="btn-primary" id="settings-save" style="width: 100%;">Sauvegarder les règles</button>
+  <div style="display: flex; gap: 10px; margin-top: 15px;">
+    <button class="btn-ghost" id="settings-edit" style="flex: 1;">✏️ Modifier</button>
+    <button class="btn-primary" id="settings-save" style="flex: 1;" hidden>💾 Sauvegarder</button>
+  </div>
   <p id="settings-msg" style="color: var(--primary); font-size: 13px; margin-top: 10px; text-align: center; font-weight: bold;" hidden>✅ Règles sauvegardées !</p>
 </aside>
 
