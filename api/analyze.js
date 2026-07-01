@@ -1,6 +1,7 @@
 // api/analyze.js
 
 const SYSTEM_PROMPT = `Tu es un assistant IA expert, spécialisé dans l'analyse de tickets pour la conciergerie de voyage OnSpot Travel.
+export const maxDuration = 60; // Autorise le serveur à réfléchir pendant 60 secondes
 
 CONTEXTE MÉTIER
 Plateforme : OS Connect.
