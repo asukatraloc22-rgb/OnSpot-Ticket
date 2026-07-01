@@ -7,7 +7,27 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' rx='6' fill='%23FFCB45'/><path d='M12 19s-5.5-3.5-5.5-8.5a5.5 5.5 0 1 1 11 0c0 5-5.5 8.5-5.5 8.5z' fill='none' stroke='%231F54B3' stroke-width='2'/><circle cx='12' cy='9' r='2' fill='%231F54B3'/></svg>">
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
+body>
+
+<div id="login-screen" class="login-overlay">
+  <div class="login-card">
+    <div class="login-logo">On<em>Spot.</em></div>
+    <h2>Accès Restreint</h2>
+    <p>Veuillez entrer le code d'accès de l'agence.</p>
+    <div class="login-form">
+      <input type="password" id="pin-input" placeholder="Code PIN" autocomplete="off">
+      <button type="button" id="pin-submit" class="btn-primary" style="width: 100%;">Déverrouiller</button>
+    </div>
+    <p id="login-error" class="error-msg" hidden>Code incorrect.</p>
+  </div>
+</div>
+
+<div id="app-content" hidden>
+
+  </div> <script src="script.js"></script>
+</body>
+
+
 
 <header class="app-header">
   <div class="brand">
